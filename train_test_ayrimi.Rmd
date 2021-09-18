@@ -1,0 +1,187 @@
+---
+title: "train_test_ayrimi"
+author: "kaggle_titanic"
+date: "17 09 2021"
+output: html_document
+---
+
+
+```{r}
+library(caret)
+library(tidyverse)
+library(AppliedPredictiveModeling)
+library(pls) # kismi en kücük kareler ve pls icin
+library(elasticnet)
+library(broom) #tidy model icin
+library(glmnet)
+library(MASS)
+library(ISLR)
+library(PerformanceAnalytics)
+library(funModeling)
+library(Matrix)
+library(dplyr)
+
+```
+#Veri seti
+```{r}
+df<-Hitters
+df<-na.omit(df) #eksik gözlemleri siliyoruz
+glimpse(df)
+rownames(df)<-c() #satirlardaki oyuncu isimlerinden kurtulduk
+
+set.seed(3456)
+
+train_indeks<-createDataPartition(df$Salary,
+                                  p=.8,
+                                  list=F,
+                                  times=1
+                                  )# verinin yüzde 80 ini train olarak aliyoruz,yani indeks atadik
+head(train_indeks)
+
+train<-df[train_indeks,]
+test<-df[-train_indeks,]
+#dplyr::select() ,, dplyr den gelecek selecti çağır demek oluyor,bazen kütüphaneyi acsakta dogru sekılde islev kullanılamıyabiliyor
+train_x<-train %>% dplyr::select(-Salary) # salary haric secim yaptık, x i bagımsız degiskenler yaptık
+train_y<-train$Salary # y yi bagimli degisken yaptik yani salary alindi sadece
+
+test_x<-test %>% dplyr::select(-Salary)
+test_y<-test$Salary
+
+#tek bir veri seti
+training<-data.frame(train_x,Salary=train_y) # tüm train degiskenlerini bir arada görmek icin
+
+```
+
+#Hizli bir bakis
+
+```{r}
+glimpse(training)
+plot_num(training) # bütün nümerik yani sürekli degiskenlerin kisa bir görselini sundu, kisa bilgi adina.**kategorikleri almaz
+
+summary(training)  # degiskenler hakkinda özet kisa bilgiler
+
+```
+
+#Tüm degiskenler icin scatter plot
+
+```{r}
+pairs(df %>% dplyr::select(-c("League","NewLeague","Division"))) # burda pek anlasilniyor
+
+```
+#Gelismis scatter plot
+
+```{r}
+chart.Correlation(df %>% 
+dplyr::select(-c("League","NewLeague","Division")),
+histogram=T,pch=19)
+
+
+
+
+
+```
+#Model
+
+```{r}
+lm_fit<-lm(Salary~.,data=training)# tüm degiskenleri secmesi icin nokta koyduk
+summary(lm_fit)
+#model nesnesi icinden alinabilecekler
+names(lm_fit)
+
+#caret ile hatalari inceleyelim
+data.frame(obs=training$Salary,  #gercek degerler trainingde
+pred=lm_fit$fitted.values) # tahmin edilen degerler lm_fit icinde
+
+
+defaultSummary(data.frame(obs=training$Salary,  #gercek degerler trainingde
+pred=lm_fit$fitted.values)) # rmse hata kareler ortalamasının karekökü,mae mutlak hata ortalaması,r squared r kare degeri
+```
+#Model ile tahmin
+
+```{r}
+defaultSummary(data.frame(obs=training$Salary, 
+                          pred=lm_fit$fitted.values)) 
+
+head(predict(lm_fit,train_x )) # lm_fit tahmin modeli, training egitim
+head(lm_fit$fitted.values)
+
+
+```
+#Test hatasinin hesaplanmasi
+
+```{r}
+defaultSummary(data.frame(obs=test_y,
+pred=predict(lm_fit,test_x)))                        
+
+
+
+
+
+```
+#Model validasyon/Model tuning
+
+```{r}
+ctrl<-trainControl(method="cv",
+                   number = 10)
+lm_val_fit<-train(x = train_x,y=train_y,
+      method="lm",
+      trControl=ctrl)
+lm_val_fit
+
+summary(lm_val_fit)
+
+names(lm_val_fit)
+
+lm_val_fit$results
+lm_val_fit$finalModel
+
+```
+
+#Model
+
+```{r}
+ctrl<-trainControl(method="cv",number=10)
+set.seed(100)
+pcr_tune<-train(train_x,train_y,
+                method="pcr",
+                trControl=ctrl,
+                prePoc=c("center","scale"))
+# model ciktisi
+pcr_tune
+
+pcr_tune<-train(train_x,train_y,
+                method="pcr",
+                trControl=ctrl,
+                tuneLength=20, # kac deneme olacagını söyler, girmezsek 3 tane dener
+                prePoc=c("center","scale"))
+
+plot(pcr_tune)  # kac degisken kullanilmasinin grafigi
+
+pcr_tune$finalModel
+
+```
+
+#Model test hatası
+
+```{r}
+defaultSummary(data.frame(obs=test_y,
+pred=as.vector(predict(pcr_tune,test_x))))
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+

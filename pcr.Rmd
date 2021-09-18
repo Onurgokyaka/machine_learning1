@@ -1,0 +1,43 @@
+---
+title: "pcr"
+author: "pcr"
+date: "18 09 2021"
+output: html_document
+---
+
+#Tahmin-PCR
+
+```{r}
+predict(pcr_fit,test_x[1:10,],ncomp=1:2)
+
+
+defaultSummary(data.frame(obs=test_y,
+pred=as.vector(predict(pcr_fit,test_x,ncomp = 1:2)))) 
+
+
+
+
+```
+#Model
+
+```{r}
+ctrl<-trainControl(method="cv",number=10)
+set.seed(100)
+pcr_tune<-train(train_x,train_y,
+                method="pcr",
+                trControl=ctrl,
+                prePoc=c("center","scale"))
+# model ciktisi
+pcr_tune
+
+pcr_tune<-train(train_x,train_y,
+                method="pcr",
+                trControl=ctrl,
+                tuneLength=20, # kac deneme olacagını söyler, girmezsek 3 tane dener
+                prePoc=c("center","scale"))
+
+plot(pcr_tune)  # kac degisken kullanilmasinin grafigi
+
+pcr_tune$finalModel
+
+```

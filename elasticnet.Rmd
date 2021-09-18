@@ -1,0 +1,75 @@
+---
+title: "elasticnet"
+author: "elasticnet_regresyon"
+date: "18 09 2021"
+output: html_document
+---
+
+#ElasticNet regresyonu
+
+lars kutuphanesindeki lars, elasticnet'te enet, glmnet'te glmnet
+
+#Model
+
+```{r}
+enet_fit<-enet(x=as.matrix(train_x_x),y=train_y,
+     lambda=1,
+     normalize = T)
+
+enet_fit$beta.pure
+
+
+
+
+
+
+
+
+
+```
+
+#Tahmin
+
+```{r}
+predict(enet_fit,newx = as.matrix(test_x_x),s=1,mode= "fraction",type="fit")
+
+predict(enet_fit,newx = as.matrix(test_x_x),s=.1,mode= "fraction",type="coefficients")
+#katsayıları ve gözlemleri cekmek
+
+
+```
+# Model Tuning
+
+```{r}
+ctrl<-trainControl(method="cv",number=10)
+set.seed(100)
+
+enet_grid<-data.frame(
+  lambda=seq(0,0.01,length=20),
+  fraction=seq(0.05,1,length=20)
+)
+
+enet_tune<-train(train_x_x,train_y,
+                    method="enet",
+                    trControl=ctrl,
+                    tuneGrid=enet_grid,
+                    preProc=c("center","scale"))
+enet_tune
+
+plot(enet_tune)
+
+enet_tune$results %>% filter(fraction==as.numeric(enet_tune$bestTune))
+
+defaultSummary(data.frame(obs=test_y,
+                          pred=as.vector(predict(enet_tune,as.matrix(test_x_x))))
+               )
+
+```
+
+
+
+
+
+
+
+

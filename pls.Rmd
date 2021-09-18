@@ -1,0 +1,69 @@
+---
+title: "pls"
+author: "pls"
+date: "18 09 2021"
+output: html_document
+---
+
+#PLS,Kismi en kücük kareler regresyonu
+
+#Model
+
+```{r}
+library(caret)
+library(tidyverse)
+library(AppliedPredictiveModeling)
+library(pls) # kismi en kücük kareler ve pls icin
+library(elasticnet)
+library(broom) #tidy model icin
+library(glmnet)
+library(MASS)
+library(ISLR)
+library(PerformanceAnalytics)
+library(funModeling)
+library(Matrix)
+library(dplyr)
+
+pls_fit<-plsr(Salary~.,data=training)
+summary(pls_fit)
+
+validationplot(pls_fit,val.type = "MSEP")
+
+names(pls_fit)
+pls_fit$scores
+
+```
+
+##Tahmin
+
+```{r}
+
+
+predict(pls_fit,test_x[1:10,],ncomp=1:2)
+
+defaultSummary(data.frame(obs=test_y,
+pred=as.vector(predict(pls_fit,test_x))))
+
+
+```
+
+
+
+```{r}
+trl<-trainControl(method="cv",number=10)
+set.seed(100)
+
+
+pls_tune<-train(train_x,train_y,
+                method="pcr",
+                trControl=ctrl,
+                tuneLength=20, # kac deneme olacagını söyler, girmezsek 3 tane dener
+                prePoc=c("center","scale"))
+ plot(pls_tune)  # kac degisken kullanilmasinin grafigi
+
+pls_tune$finalModel
+
+pls_tune$results
+
+```
+
